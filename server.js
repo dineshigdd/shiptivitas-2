@@ -114,11 +114,37 @@ app.get('/api/v1/clients/:id', (req, res) => {
  *      priority (optional): integer,
  *
  */
-app.put('/api/v1/clients/:id', (req, res) => {
+// PUT /api/v1/clients/reorder
+app.put('/api/v1/clients/reorder', (req, res) => {
+  const { clients } = req.body;
+  console.log(clients); // Should log your array
+     // Should log "test"
+ if( !clients ){
+   return res.status( 400 ).send( 'empty client list')
+ }
+
+  // clients.map( (client, index ) => client.priority = index + 1 )
+  
+  const update = db.prepare("UPDATE clients SET priority = ? WHERE id = ?")
+  const transaction = db.transaction( ( clients ) => {
+    for( const [ index, client ]  of clients.entries() ){
+      const newPriority = index + 1;
+      update.run( newPriority , client.id )
+    }
+  })
+
+  
+  transaction(clients);
+
+  res.status(200).json( clients );
+});
+
+
+app.put('/api/v1/clients/:id', (req, res) => { //this api works correctly only when a client moved from one swimlabe to the END of next swimlane
   const id = parseInt(req.params.id , 10);
-  const { valid, messageObj } = validateId(id);
+  const { valid, messageObj } = validateId
   if (!valid) {
-    res.status(400).send(messageObj);
+    return res.status(400).send(messageObj);
   }
 
   let { status, priority } = req.body;
@@ -126,11 +152,17 @@ app.put('/api/v1/clients/:id', (req, res) => {
   const client = clients.find(client => client.id === id);
 
   /* ---------- Update code below ----------*/
-
-
+  if( client ){
+    client.status = status;
+    client.priority = priority;
+    console.log( client)
+    db.prepare(`update clients set status = @status , priority = @priority where id = @id`).run(client)
+  }
 
   return res.status(200).send(clients);
 });
+
+
 
 app.listen(3001);
 console.log('app running on port ', 3001);
