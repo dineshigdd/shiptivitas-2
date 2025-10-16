@@ -118,14 +118,12 @@ app.get('/api/v1/clients/:id', (req, res) => {
  */
 // PUT /api/v1/clients/reorder
 app.put('/api/v1/clients/reorder', (req, res) => {
-  const { clients } = req.body;
-  console.log(clients); // Should log your array
-     // Should log "test"
- if( !clients ){
-   return res.status( 400 ).send( 'empty client list')
- }
+  const { clients } = req.body; 
 
-  // clients.map( (client, index ) => client.priority = index + 1 )
+  if( !clients ){
+    return res.status( 400 ).send( 'empty client list')
+  }
+
   
   const update = db.prepare("UPDATE clients SET priority = ? WHERE id = ?")
   const transaction = db.transaction( ( clients ) => {
@@ -178,8 +176,7 @@ app.put('/api/v1/clients/:id', (req, res) => { //this api works correctly only w
   /* ---------- Update code below ----------*/
   if( client ){
     client.status = status;
-    client.priority = priority;
-    console.log( client)
+    client.priority = priority;  
     db.prepare(`update clients set status = @status , priority = @priority where id = @id`).run(client)
   }
 
