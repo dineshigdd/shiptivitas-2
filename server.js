@@ -141,18 +141,14 @@ app.put('/api/v1/clients/reorder', (req, res) => {
 
 
 app.put('/api/v1/clients/lane-change', (req, res) => {
+
   const { sourceClientGroup, targetGroup } = req.body;
-  console.log(sourceClientGroup);
-  console.log(targetGroup); // Should log your array
-     // Should log "test"
- if( !(sourceClientGroup && targetGroup )){
+   if( !(sourceClientGroup && targetGroup )){
    return res.status( 400 ).send( 'No source or target swimlane clients')
  }
 
-
   
-  const update = db.prepare("UPDATE clients SET status = ? , priority = ? WHERE id = ?")
-  
+  const update = db.prepare("UPDATE clients SET status = ? , priority = ? WHERE id = ?")  
   const transaction = db.transaction( ( clients ) => {
 
     for( const [ index, client ]  of clients.entries() ){
