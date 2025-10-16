@@ -71,6 +71,7 @@ const validatePriority = (priority) => {
  */
 app.get('/api/v1/clients', (req, res) => {
   const status = req.query.status;
+  const priority = req.query.priority;
   if (status) {
     // status can only be either 'backlog' | 'in-progress' | 'complete'
     if (status !== 'backlog' && status !== 'in-progress' && status !== 'complete') {
@@ -79,7 +80,8 @@ app.get('/api/v1/clients', (req, res) => {
         'long_message': 'Status can only be one of the following: [backlog | in-progress | complete].',
       });
     }
-    const clients = db.prepare('select * from clients where status = ?').all(status);
+    const clients = db.prepare('select * from clients where status = ? ORDER BY priority=?').all(status , priority );
+    console.log( clients )
     return res.status(200).send(clients);
   }
   const statement = db.prepare('select * from clients');
@@ -129,15 +131,41 @@ app.put('/api/v1/clients/reorder', (req, res) => {
   const transaction = db.transaction( ( clients ) => {
     for( const [ index, client ]  of clients.entries() ){
       const newPriority = index + 1;
-      update.run( newPriority , client.id )
+      update.run( newPriority, client.id )
     }
   })
-
   
   transaction(clients);
-
   res.status(200).json( clients );
 });
+
+
+app.put('/api/v1/clients/lane-change', (req, res) => {
+  const { sourceClientGroup, targetGroup } = req.body;
+  console.log(sourceClientGroup);
+  console.log(targetGroup); // Should log your array
+     // Should log "test"
+ if( !(sourceClientGroup && targetGroup )){
+   return res.status( 400 ).send( 'No source or target swimlane clients')
+ }
+
+
+  
+  const update = db.prepare("UPDATE clients SET status = ? , priority = ? WHERE id = ?")
+  
+  const transaction = db.transaction( ( clients ) => {
+
+    for( const [ index, client ]  of clients.entries() ){
+      const newPriority = index + 1;
+      update.run( client.status, newPriority, client.id )
+    }
+  })
+  
+  transaction(sourceClientGroup);    
+  transaction(targetGroup);
+  res.status(200).json( "status and priorty updated" );
+});
+
 
 
 app.put('/api/v1/clients/:id', (req, res) => { //this api works correctly only when a client moved from one swimlabe to the END of next swimlane
